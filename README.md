@@ -8,4 +8,4 @@
 
 # Run Application
 
-`./result/bin/encode-decode-drainer  --metrics-update-interval 10 --prometheus-port 9093 --filePath ~/Downloads/bigFile.txt`
+`./result/bin/encode-decode-drainer  --metrics-update-interval 10 --prometheus-port 9093 --file ~/Downloads/bigFile.txt`
