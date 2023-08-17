@@ -33,12 +33,11 @@ main :: IO ()
 main = do
   CommandLineArgs
     { prometheusSettings
-    , fName
     } <- execParser (info cmdArgsParser mempty)
   startMetricsApp (port prometheusSettings)
   logsCounter <- register $ counter (Info "log" "Total logs")
   let
-    mainLoop !hndl =
+    mainLoop =
         S.mapM_ (\logLine -> do
           let
             encodedLog = (BS.toStrict $ encode logLine)
@@ -47,17 +46,14 @@ main = do
          tapRate
           (fromIntegral $ updateInterval prometheusSettings)
           (updateMetrics logsCounter (updateInterval prometheusSettings))
-          (messagesFromFile hndl)
+          (messagesFromStdin)
          & S.mapMaybeM (\line -> do
           let val = (decodeStrict line :: Maybe Value)
           pure val)
-  bracket
-    (openFile fName ReadWriteMode)
-    (hClose)
-    mainLoop
+  mainLoop
   where
-  messagesFromFile hndl =
-    S.repeatM $ BS.hGetLine hndl
+  messagesFromStdin =
+    S.repeatM $ BS.getLine
     -- BS.getLine
     -- BS.hGetLine hndl
   updateMetrics counter_ interval i = do
