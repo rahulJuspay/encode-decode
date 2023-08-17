@@ -1,6 +1,8 @@
 # Setup - before build
 
 1) Install nix -> https://nixos.org/download.html
+2) brew install ghc cabal-install
+
 
 # Build
 
