@@ -1,0 +1,6 @@
+result
+dist-newstyle/
+compressed-logs.gz
+out.bin/
+outputs/
+/.direnv/
