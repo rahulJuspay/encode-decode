@@ -1,45 +1,66 @@
 {
   description = "Flake system for encode-decode";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    flake-parts.url = "github:hercules-ci/flake-parts";
-    haskell-flake.url = "github:srid/haskell-flake";
-    nixpkgs-140774-workaround.url = "github:srid/nixpkgs-140774-workaround";
+    nixpkgs.url = "github:NixOS/nixpkgs/747927516efcb5e31ba03b7ff32f61f6d47e7d87";
+    flake-utils.url = "github:numtide/flake-utils";
+    flake-compat.url = "github:edolstra/flake-compat";
+    flake-compat.flake = false;
+    #haskell-flake.url = "github:srid/haskell-flake";
   };
-  outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
-    flake-parts.lib.mkFlake { inherit inputs; } ({ withSystem, ... }: {
-      systems = nixpkgs.lib.systems.flakeExposed;
-      imports = [
-        inputs.haskell-flake.flakeModule
-      ];
-      perSystem = { self', inputs', pkgs, system, ... }: {
-        legacyPackages = pkgs;
-        haskellProjects.default = {
-          imports = [
-            inputs.nixpkgs-140774-workaround.haskellFlakeProjectModules.default
-            self.haskellFlakeProjectModules.input
-          ];
-          packages.encode-decode.root = ./.;
+  outputs = inputs@{ self, nixpkgs, flake-utils, flake-compat, ... }:
+    let
+      ghcFor = pkgs: pkgs.haskell.packages.ghc94;
+      enableHsProfiling = _hfinal: hprev: {
+                  mkDerivation = args: hprev.mkDerivation (args // {
+                    enableLibraryProfiling = true;
+                    enableExecutableProfiling = true;
+                  });
+                };
+      composeExtensions = pkgs: hsOverrides:
+        pkgs.lib.composeManyExtensions [
+          # enableHsProfiling
+          hsOverrides
+          # enableHsProfiling
+        ];
+    in
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs =
+          import nixpkgs { inherit system; config = { allowUnfree = true; };};
+        hp = 
+          (pkgs.haskell.packages.ghc94.extend (self: super: {
+            mkDerivation = args:
+              super.mkDerivation (args // { enableLibraryProfiling = true; enableExecutableProfiling = true; }); })).extend(composeExtensions pkgs (overrides pkgs));
+        overrides = pkgs: import ./overlay.nix { inherit pkgs; };
+        encode-decode = hp.encode-decode;
+        shellDeps = hp:
+          with hp;
+          [ cabal-install
+            # ghcid
+            hlint
+            pkgs.nixpkgs-fmt
+            hp2html
+            pkgs.cassandra_4
+            pkgs.kcat
+            pkgs.just
+            hp2pretty ];
+      in
+      {
+        packages = { inherit encode-decode; };
+        legacyPackages = import nixpkgs {
+          inherit system;
+          overlays = [ self.overlay ];
+          crossOverlays = [ self.overlay ];
+        };
 
-          devShell = {
-            enable = true;
-            hlsCheck.enable = true;
-          };
+        defaultPackage = self.packages.${system}.encode-decode;
+
+        devShells.default =
+          hp.shellFor {
+            packages = p: [ p.encode-decode ];
+            withHoogle = true;
+            buildInputs = shellDeps hp;
+            genericBuilderArgsModifier = args: args // { enableLibraryProfiling = true; enableExecutableProfiling = true; };
         };
-        packages.default = self'.packages.encode-decode;
-      };
-      flake.haskellFlakeProjectModules = rec {
-        input = { pkgs, ... }: {
-          overrides = import ./overlay.nix { inherit pkgs; };
-        };
-        output = { pkgs, lib, ... }: withSystem pkgs.system (ctx@{ config, ... }: {
-          imports = [
-            input
-          ];
-          source-overrides =
-            lib.mapAttrs (name: ks: ks.root)
-              config.haskellProjects.default.packages;
-        });
-      };
-    });
+      });
 }

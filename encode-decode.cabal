@@ -39,6 +39,10 @@ common optimization-options
   if flag(opt)
     ghc-options: -O2
                  -fdicts-strict
+                 -auto-all
+                --  -prof
+                --  -rtsopts
+                --  -fprof-auto
 
 -- library    uploader-internal
 --   exposed-modules:     Uploader.Types
@@ -119,6 +123,9 @@ executable encode-decode-drainer
                  -threaded
                  -rtsopts
                  -fobject-code
+                --  -auto-all
+                --  -fprof-auto
+                --  -prof
 
   -- Directories containing source files.
   hs-source-dirs:      encode-decode-drainer
