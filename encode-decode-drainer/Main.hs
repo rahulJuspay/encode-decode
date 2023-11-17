@@ -24,10 +24,12 @@ import ProgramOptions
 import Prometheus
 import qualified Streamly.Prelude as S
 import Streamly.Internal.Data.Stream.IsStream.Transform (tapRate)
+import qualified Streamly.Internal.Data.Stream.IsStream as S (chunksOfTimeout)
 import Data.Aeson
 import qualified Data.ByteString as BS
 import System.IO ( hClose, openFile, IOMode(ReadWriteMode) )
 import Control.Exception (evaluate)
+import Streamly.Internal.Data.Fold as Fold
 
 main :: IO ()
 main = do
@@ -38,18 +40,14 @@ main = do
   logsCounter <- register $ counter (Info "log" "Total logs")
   let
     mainLoop =
-        S.mapM_ (\logLine -> do
-          let
-            encodedLog = (BS.toStrict $ encode logLine)
-          evaluate (BS.length encodedLog)
+        S.mapM_ (\logList -> do
+          print $ Prelude.length logList
           ) $
          tapRate
           (fromIntegral $ updateInterval prometheusSettings)
           (updateMetrics logsCounter (updateInterval prometheusSettings))
           (messagesFromStdin)
-         & S.mapMaybeM (\line -> do
-          let val = (decodeStrict line :: Maybe Value)
-          pure val)
+         & S.chunksOfTimeout 70000 5 Fold.toList
   mainLoop
   where
   messagesFromStdin =

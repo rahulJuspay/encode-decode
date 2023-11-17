@@ -5,8 +5,10 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     haskell-flake.url = "github:srid/haskell-flake";
     nixpkgs-140774-workaround.url = "github:srid/nixpkgs-140774-workaround";
+    flake-compat.url = "github:edolstra/flake-compat";
+    flake-compat.flake = false;
   };
-  outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
+  outputs = inputs@{ self, nixpkgs, flake-compat, flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } ({ withSystem, ... }: {
       systems = nixpkgs.lib.systems.flakeExposed;
       imports = [
@@ -24,6 +26,16 @@
           devShell = {
             enable = true;
             hlsCheck.enable = true;
+            tools = hp: {
+              inherit (pkgs)
+                nixpkgs-fmt cassandra_4 kcat just;
+              inherit (hp)
+                cabal-install ghcid fourmolu hp2html hp2pretty;
+              # Dependency for cqlsh
+              inherit (pkgs.python3Packages)
+                greenlet;
+              # cachix = inputs'.cachix.packages.default;
+            };
           };
         };
         packages.default = self'.packages.encode-decode;
