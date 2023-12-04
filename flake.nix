@@ -1,7 +1,7 @@
 {
   description = "Flake system for encode-decode";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/747927516efcb5e31ba03b7ff32f61f6d47e7d87";
     flake-parts.url = "github:hercules-ci/flake-parts";
     haskell-flake.url = "github:srid/haskell-flake";
     nixpkgs-140774-workaround.url = "github:srid/nixpkgs-140774-workaround";

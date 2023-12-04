@@ -101,6 +101,8 @@ executable encode-decode-drainer
                     , lens-aeson
                     , errors
                     , regex-compat
+                    , streamly-core
+                    , hw-kafka-client
 
   ghc-options:   -ddump-minimal-imports
                  -fsimpl-tick-factor=10000
